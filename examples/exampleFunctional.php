@@ -10,13 +10,14 @@ $gPasswd        = ""; // Gmail account password
 $casperKey      = ""; // Casper API Key
 $casperSecret   = ""; // Casper API Secret
 $debug = false; // Set this to true if you want to see all outgoing requests and responses from server
+$log = false; // Set this to true if you want to log all outgoing requests and responses from server
 ////////////////////////////////
 
 
 $imagePath = ""; // URL or local path to a media file (image or video)
 $sendTo = array();
 
-$snapchat = new Snapchat($username, $gEmail, $gPasswd, $casperKey, $casperSecret, $debug);
+$snapchat = new Snapchat($username, $gEmail, $gPasswd, $casperKey, $casperSecret, $debug, $log);
 
 //Login to Snapchat with your username and password
 $snapchat->login($password);

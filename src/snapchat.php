@@ -41,7 +41,7 @@ class Snapchat extends SnapchatAgent {
 	const STATUS_SENT 			= 0;
 	const STATUS_DELIVERED  	= 1;
 	const STATUS_OPENED 		= 2;
-	const STATUS_SCREENSHOT     = 3;
+	const STATUS_SCREENSHOT	    = 3;
 
 	/**
 	 * Friend statuses.
@@ -63,6 +63,8 @@ class Snapchat extends SnapchatAgent {
 	protected $chat_auth_token;
 	protected $username;
 	protected $debug;
+	protected $log;
+	protected $runtime;
 	protected $gEmail;
 	protected $gPasswd;
 	protected $casper;
@@ -80,13 +82,15 @@ class Snapchat extends SnapchatAgent {
 	 * @param string $gPasswd
 	 *   The Google password used for this gEmail.
 	 */
-	public function __construct($username, $gEmail, $gPasswd, $casperKey = "", $casperSecret = "", $debug = FALSE)
+	public function __construct($username, $gEmail, $gPasswd, $casperKey = "", $casperSecret = "", $debug = FALSE, $log = FALSE)
 	{
-		$this->username     = $username;
-		$this->debug 	    = $debug;
-		$this->gEmail 	    = $gEmail;
-		$this->gPasswd  	= $gPasswd;
-		$this->casper       = new CasperAPI($casperKey, $casperSecret);
+		$this->username = $username;
+		$this->debug 	= $debug;
+		$this->log		= $log;
+		$this->gEmail 	= $gEmail;
+		$this->gPasswd  = $gPasswd;
+		$this->casper	= new CasperAPI($casperKey, $casperSecret);
+		$this->runtime	= time();
 
 		if(file_exists(__DIR__ . DIRECTORY_SEPARATOR . self::DATA_FOLDER . DIRECTORY_SEPARATOR . "auth-$this->username.dat"))
 		{
@@ -118,7 +122,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return $result;
@@ -139,7 +145,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return $result;
@@ -230,6 +238,13 @@ class Snapchat extends SnapchatAgent {
 				echo 'DATA: ' . print_r($postfields) . "\n";
 				echo 'RESULT: ' . $result . "\n";
 			}
+			
+			if($this->log)
+			{
+				file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $this->runtime . ".txt" , "\nREQUEST TO: https://android.clients.google.com/auth\n" , FILE_APPEND);
+				file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $this->runtime . ".txt" , 'DATA: ' . print_r($postfields, TRUE) . "\n" , FILE_APPEND);
+				file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $this->runtime . ".txt" , 'RESULT: ' . $result . "\n" , FILE_APPEND);
+			}
 
 			if(curl_getinfo($ch, CURLINFO_HTTP_CODE) != 200)
 			{
@@ -307,6 +322,13 @@ class Snapchat extends SnapchatAgent {
 			echo 'RESULT: ' . $result . "\n";
 		}
 
+		if($this->log)
+		{
+			file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $this->runtime . ".txt" , "\nREQUEST TO: https://android.clients.google.com/c2dm/register3\n" , FILE_APPEND);
+			file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $this->runtime . ".txt" , 'DATA: ' . print_r($postfields, TRUE) . "\n" , FILE_APPEND);
+			file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $this->runtime . ".txt" , 'RESULT: ' . $result . "\n" , FILE_APPEND);
+		}
+		
 		if(curl_getinfo($ch, CURLINFO_HTTP_CODE) != 200)
 		{
 			$return['error'] = 1;
@@ -359,7 +381,7 @@ class Snapchat extends SnapchatAgent {
 					return $auth;
 			}
 			parent::setGAuth($auth);
-            $attestation = $this->getAttestation($this->username, $password, $timestamp);
+			$attestation = $this->getAttestation($this->username, $password, $timestamp);
 			$clientAuthToken = $this->getClientAuthToken($this->username, $password, $timestamp);
 
 			$result = parent::post(
@@ -387,7 +409,9 @@ class Snapchat extends SnapchatAgent {
 					$clientAuthToken
 				),
 				$multipart = false,
-				$debug = $this->debug
+				$debug = $this->debug,
+				$log = $this->log,
+				$runtime = $this->runtime
 			);
 
 
@@ -437,7 +461,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 	}
 
@@ -467,7 +493,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		// Clear out the cache in case the instance is recycled.
@@ -536,7 +564,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		if(!isset($result["data"]->auth_token))
@@ -568,7 +598,9 @@ class Snapchat extends SnapchatAgent {
 				$auth['auth']
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 		$result = $result["data"];
 
@@ -640,7 +672,9 @@ class Snapchat extends SnapchatAgent {
 			array(
 				$this->auth_token,
 				$timestamp,
-			)
+			),
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return $result;
@@ -670,7 +704,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 		$result = $result["data"];
 		return (isset($result->logged) && $result->logged);
@@ -690,7 +726,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 		return $result;
 	}
@@ -711,7 +749,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return $result;
@@ -732,7 +772,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return $result;
@@ -747,7 +789,7 @@ class Snapchat extends SnapchatAgent {
 		  $authInfo = $this->getConversationAuth($to);
 		  //if user is even a friend
 		  if(!property_exists($authInfo["data"], "messaging_auth")) continue;
-		    $authArray[$to] = $authInfo['data'];
+			$authArray[$to] = $authInfo['data'];
 			  $payload = $authInfo["data"]->messaging_auth->payload;
 			  $mac = $authInfo["data"]->messaging_auth->mac;
 			  $genID = md5(uniqid());
@@ -814,7 +856,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 		$resultsf = array();
 		foreach($result['data']->conversations as $convo){
@@ -836,10 +880,10 @@ class Snapchat extends SnapchatAgent {
 	  		continue;
 	  	}
 		  if(!array_key_exists($to, $convoInfo[0])){ //new convo
-		    $payload = $convoInfo[1][$to]->messaging_auth->payload;
+			$payload = $convoInfo[1][$to]->messaging_auth->payload;
 			  $mac = $convoInfo[1][$to]->messaging_auth->mac;
 			  $seq_num = 0;
-		    $conv_id = implode('~', array($to, $this->username));
+			$conv_id = implode('~', array($to, $this->username));
 		  }else{ //conversation already exists
 			  $payload = $convoInfo[0][$to]->conversation_messages->messaging_auth->payload;
 			  $mac = $convoInfo[0][$to]->conversation_messages->messaging_auth->mac;
@@ -854,27 +898,27 @@ class Snapchat extends SnapchatAgent {
 		  $timestamp = parent::timestamp();
 		  $messagesArray[] =
 			  array(
-			    'body' => array(
-				    'text' => $text,
-				    'type' => 'text'
-			    ),
-			    'chat_message_id' => $chatID,
-			    'seq_num' => $seq_num + 1,
-			    'timestamp' => $timestamp,
-			    'header' => array(
-				    'auth' => array(
-					    'mac' => $mac,
-					    'payload' => $payload
-				    ),
-				    'to' => array($to),
-				    'conv_id' => $conv_id,
-				    'from' => $this->username,
-				    'conn_seq_num' => 1
-			    ),
-			    'retried' => false,
-			    'id' => $id,
-			    'type' => 'chat_message'
-		    );
+				'body' => array(
+					'text' => $text,
+					'type' => 'text'
+				),
+				'chat_message_id' => $chatID,
+				'seq_num' => $seq_num + 1,
+				'timestamp' => $timestamp,
+				'header' => array(
+					'auth' => array(
+						'mac' => $mac,
+						'payload' => $payload
+					),
+					'to' => array($to),
+					'conv_id' => $conv_id,
+					'from' => $this->username,
+					'conn_seq_num' => 1
+				),
+				'retried' => false,
+				'id' => $id,
+				'type' => 'chat_message'
+			);
 	  }
 	  if(count($messagesArray) <= 0) return null;
 		$messages = json_encode($messagesArray);
@@ -891,7 +935,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 		return $result;
 	}
@@ -919,7 +965,9 @@ class Snapchat extends SnapchatAgent {
 					$this->auth_token,
 					$timestamp,
 				),
-				$multipart = false
+				$multipart = false,
+				$log = $this->log,
+				$runtime = $this->runtime
 			);
 			$convos = array_merge($convos, $result['data']->conversations_response);
 			$last = json_decode(json_encode(end($result['data']->conversations_response)), true);
@@ -976,7 +1024,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		if(!empty($result->updates_response))
@@ -1014,7 +1064,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return $result;
@@ -1035,12 +1087,12 @@ class Snapchat extends SnapchatAgent {
 
 		$snaps = array();
 		$conversations = $this->getConversations();
-	    foreach($conversations as &$conversation)
-	    {
+		foreach($conversations as &$conversation)
+		{
 			$pending_received_snaps = $conversation->pending_received_snaps;
 			foreach($pending_received_snaps as &$snap)
 			{
-			    $snaps[] = (object) array(
+				$snaps[] = (object) array(
 					'id' => $snap->id,
 					'media_id' => empty($snap->c_id) ? FALSE : $snap->c_id,
 					'media_type' => $snap->m,
@@ -1177,7 +1229,9 @@ class Snapchat extends SnapchatAgent {
 						$timestamp,
 					),
 					$multipart = false,
-					$debug = $this->debug
+					$debug = $this->debug,
+					$log = $this->log,
+					$runtime = $this->runtime
 				);
 
 				if (isset($result->results)) {
@@ -1211,7 +1265,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return $result;
@@ -1238,7 +1294,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return $result;
@@ -1357,7 +1415,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		// Sigh...
@@ -1398,7 +1458,10 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug);
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
+		);
 
 		return $result;
 	}
@@ -1452,7 +1515,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 		return $result['data'];
 		//return !empty($result->message);
@@ -1490,7 +1555,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		// Sigh...
@@ -1526,7 +1593,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 		return $result;
 	}
@@ -1564,7 +1633,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return !empty($result->message);
@@ -1603,7 +1674,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return !empty($result->message);
@@ -1640,7 +1713,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return !empty($result->message);
@@ -1677,7 +1752,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return !empty($result->message);
@@ -1692,10 +1769,10 @@ class Snapchat extends SnapchatAgent {
 	 *
 	 * @return mixed
 	 *   The snap data or FALSE on failure.
-	 *     Snap data can returned as an Array of more than one file.
+	 *	 Snap data can returned as an Array of more than one file.
 	 * 	array(
-	 * 		overlay~zip-CE6F660A-4A9F-4BD6-8183-245C9C75B8A0    => overlay_file_data,
-	 *		media~zip-CE6F660A-4A9F-4BD6-8183-245C9C75B8A0	    => m4v_file_data
+	 * 		overlay~zip-CE6F660A-4A9F-4BD6-8183-245C9C75B8A0	=> overlay_file_data,
+	 *		media~zip-CE6F660A-4A9F-4BD6-8183-245C9C75B8A0		=> m4v_file_data
 	 * 	)
 	 */
 	function getMedia($id, $from = null, $time = null, $subdir = null)
@@ -1715,7 +1792,7 @@ class Snapchat extends SnapchatAgent {
 		{
 			mkdir($path, 0777, true);
 		}
-		$file = $path . DIRECTORY_SEPARATOR . date("Y-m-d H-i-s", (int) ($time / 1000));
+		$file = $path . DIRECTORY_SEPARATOR . date("Y-m-d H-i-s", (int) ($time / 1000)) . "_" . $time. "_snap_" . $id;
 
 		$extensions = array(".jpg", ".png", ".mp4", "");
 		foreach ($extensions as $ext)
@@ -1740,7 +1817,9 @@ class Snapchat extends SnapchatAgent {
 					$timestamp,
 				),
 				$multipart = false,
-				$debug = $this->debug
+				$debug = $this->debug,
+				$log = $this->log,
+				$runtime = $this->runtime
 			);
 
 		if(!parent::isMedia(substr($result, 0, 2)))
@@ -1850,7 +1929,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return is_null($result);
@@ -1887,7 +1968,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return is_null($result);
@@ -1986,9 +2069,9 @@ class Snapchat extends SnapchatAgent {
 	*   The snap to mark as shot.
 	*			friend_stories : Array
 	*							Array
-  *      							id : Story snap id
-  *      							screenshot-count : Integer
-  *      							timestamp : Time viewed
+  *	  							id : Story snap id
+  *	  							screenshot-count : Integer
+  *	  							timestamp : Time viewed
 	*
 	* @return
 	* 	If your request was successful, you'll get back a 200 OK with no body content.
@@ -2015,7 +2098,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return is_null($result);
@@ -2059,7 +2144,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return is_null($result);
@@ -2133,7 +2220,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = true,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		//unlink($temp);
@@ -2183,7 +2272,10 @@ class Snapchat extends SnapchatAgent {
 			array(
 				$this->auth_token,
 				$timestamp,
-			),  $multipart = true
+			),
+			$multipart = true,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return $result;
@@ -2243,7 +2335,9 @@ class Snapchat extends SnapchatAgent {
 					$timestamp
 				),
 				$multipart = false,
-				$debug = $this->debug
+				$debug = $this->debug,
+				$log = $this->log,
+				$runtime = $this->runtime
 			);
 			return $result;
 		}
@@ -2293,7 +2387,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return $result;
@@ -2332,7 +2428,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return $result;
@@ -2417,7 +2515,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = true,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return $result;
@@ -2444,7 +2544,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return is_null($result);
@@ -2514,7 +2616,7 @@ class Snapchat extends SnapchatAgent {
 			{
 				mkdir($path, 0777, true);
 			}
-			$file = $path . DIRECTORY_SEPARATOR . date("Y-m-d-H-i-s", (int) ($timestamp / 1000)) . "-story-" . $media_id;
+			$file = $path . DIRECTORY_SEPARATOR . date("Y-m-d-H-i-s", (int) ($timestamp / 1000)) . "_" . $timestamp . "_story_" . $media_id;
 			$extensions = array(".jpg", ".png", ".mp4", "");
 			foreach ($extensions as $ext)
 			{
@@ -2650,7 +2752,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return is_null($result);
@@ -2809,7 +2913,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		if(empty($result))
@@ -2855,7 +2961,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return is_null($result);
@@ -2871,7 +2979,7 @@ class Snapchat extends SnapchatAgent {
 		$result = parent::post(
 			'/loq/clear_conversation',
 			array(
-			    'conversation_id' => $id,
+				'conversation_id' => $id,
 				'timestamp' => $timestamp,
 				'username' => $this->username,
 			),
@@ -2880,7 +2988,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return is_null($result);
@@ -2911,7 +3021,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return is_null($result);
@@ -2957,7 +3069,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return isset($result->param) && $result->param == $setting;
@@ -2986,7 +3100,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return isset($result->param) && $result->param == $setting;
@@ -3023,7 +3139,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return isset($result->param) && $result->param == $email;
@@ -3060,7 +3178,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return isset($result->param) && $result->param == $bool;
@@ -3068,20 +3188,20 @@ class Snapchat extends SnapchatAgent {
 
 	public function openAppEvent()
 	{
-    	$timestamp = parent::timestamp();
-    	$uniId = md5(uniqid());
-    	$updates = $this->getUpdates();
+		$timestamp = parent::timestamp();
+		$uniId = md5(uniqid());
+		$updates = $this->getUpdates();
 			$updates = $updates['data'];
 			$fc = -1;
 			if ($updates != "")
 			{
-    			$friends = $updates->friends_response;
+				$friends = $updates->friends_response;
 					foreach($friends->friends as &$friend) if (strval($friend->type) == 0) $fc++;
 			}
 
 			$uuid4 = sprintf('%08s-%04s-%04x-%04x-%12s', substr($uniId, 0, 8), substr($uniId, 8, 4), substr($uniId, 12, 4), substr($uniId, 16, 4), substr($uniId, 20, 12));
-    	$data = '{"common_params":{"user_id":"' . hash("sha256",strtolower($this->username)) . '","city":"Unimplemented","sc_user_agent":"' . str_replace("/", "\/", parent::USER_AGENT) . '","session_id":"00000000-0000-0000-0000-000000000000","region":"Unimplemented","latlon":"Unimplemented","friend_count":' . $fc . ',"country":"Unimplemented"},"events":[{"event_name":"APP_OPEN","event_timestamp":' . $timestamp . ',"event_params":{"open_state":"NORMAL","intent_action":"null"}}],"batch_id":"' . $uuid4 . '-' . preg_replace("/[^a-zA-Z0-9]+/", "", parent::USER_AGENT) . $timestamp . '"}';
-      $result = parent::posttourl('https://sc-analytics.appspot.com/post_events',$data);
+		$data = '{"common_params":{"user_id":"' . hash("sha256",strtolower($this->username)) . '","city":"Unimplemented","sc_user_agent":"' . str_replace("/", "\/", parent::USER_AGENT) . '","session_id":"00000000-0000-0000-0000-000000000000","region":"Unimplemented","latlon":"Unimplemented","friend_count":' . $fc . ',"country":"Unimplemented"},"events":[{"event_name":"APP_OPEN","event_timestamp":' . $timestamp . ',"event_params":{"open_state":"NORMAL","intent_action":"null"}}],"batch_id":"' . $uuid4 . '-' . preg_replace("/[^a-zA-Z0-9]+/", "", parent::USER_AGENT) . $timestamp . '"}';
+	  $result = parent::posttourl('https://sc-analytics.appspot.com/post_events',$data);
 
 			if ($this->debug)
 			{
@@ -3143,7 +3263,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return $result;
@@ -3179,7 +3301,9 @@ class Snapchat extends SnapchatAgent {
 				$timestamp,
 			),
 			$multipart = false,
-			$debug = $this->debug
+			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return $result;
@@ -3206,11 +3330,11 @@ class Snapchat extends SnapchatAgent {
 		$result = parent::post(
 			'/loq/loc_data',
 			array(
-                'timestamp' => $timestamp,
+				'timestamp' => $timestamp,
 				'lat' => $lat,
 				'long' => $lon,
-                'loc_accuracy_in_meters' => $acc,
-                'checksums_dict' => '{}',
+				'loc_accuracy_in_meters' => $acc,
+				'checksums_dict' => '{}',
 				'username' => $this->username
 			),
 			array(
@@ -3219,6 +3343,8 @@ class Snapchat extends SnapchatAgent {
 			),
 			$multipart = false,
 			$debug = $this->debug,
+			$log = $this->log,
+			$runtime = $this->runtime
 		);
 
 		return $result;

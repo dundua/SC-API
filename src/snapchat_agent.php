@@ -322,7 +322,7 @@ abstract class SnapchatAgent {
 	 *   The data returned from the API (decoded if JSON). Returns FALSE if
 	 *   the request failed.
 	 */
-	public function post($endpoint, $data, $params, $multipart = FALSE, $debug = FALSE)
+	public function post($endpoint, $data, $params, $multipart = FALSE, $debug = FALSE, $log = FALSE, $runtime)
 	{
 		$ch = curl_init();
 
@@ -457,6 +457,59 @@ abstract class SnapchatAgent {
 				if(isset($jsonResult->logged) && $jsonResult->logged == false)
 				{
 					echo "\n" . 'ERROR: There was an error registering your account: ' . $jsonResult->message . "\n";
+					exit();
+				}
+			}
+		}
+        
+		if($log)
+		{
+			$info = curl_getinfo($ch);
+            file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $runtime . ".txt" , "\nREQUEST TO: " .self::URL . $endpoint . "\n" , FILE_APPEND);
+			if(isset($info['request_header']))
+                file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $runtime . ".txt" , "\nSent Request info: " .print_r($info['request_header'], true). "\n" , FILE_APPEND);
+			if(is_array($data))
+			{
+					if ($multipart)
+				  		file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $runtime . ".txt" , 'DATA: ' . strlen($data) . " byte data\n" , FILE_APPEND);
+					else
+						file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $runtime . ".txt" , 'DATA: ' . print_r($data, TRUE) . "\n" , FILE_APPEND);
+			}
+			else
+			{
+				if ($multipart)
+					file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $runtime . ".txt" , 'DATA: ' . strlen($data) . " byte data\n" , FILE_APPEND);
+				else
+					file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $runtime . ".txt" , 'DATA: ' . $data . "\n" , FILE_APPEND);
+			}
+
+			if($endpoint == "/loq/login" || $endpoint == "/all_updates")
+			{
+				if (strpos($result,'401 UNAUTHORIZED') !== false)
+				{
+					file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $runtime . ".txt" , "\nRESULT: 401 UNAUTHORIZED\n" , FILE_APPEND);
+					exit();
+				}
+
+				$jsonResult = json_decode($result);
+				file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $runtime . ".txt" , 'RESULT: ' . print_r($jsonResult, TRUE) . "\n" , FILE_APPEND);
+				if (property_exists($jsonResult, "status") && $jsonResult->status == '-103')
+					exit();
+			}
+			else
+			{
+				if (strpos($result,'400 BAD_REQUEST') !== false)
+					file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $runtime . ".txt" , "\nRESULT: 400 BAD REQUEST\n" , FILE_APPEND);
+				else
+					file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $runtime . ".txt" , 'RESULT: ' . $result . "\n" , FILE_APPEND);
+			}
+
+			if($endpoint == '/loq/register_username' || $endpoint == '/loq/register')
+			{
+				$jsonResult = json_decode($result);
+				if(isset($jsonResult->logged) && $jsonResult->logged == false)
+				{
+					file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . $runtime . ".txt" , "\n" . 'ERROR: There was an error registering your account: ' . $jsonResult->message . "\n" , FILE_APPEND);
 					exit();
 				}
 			}
